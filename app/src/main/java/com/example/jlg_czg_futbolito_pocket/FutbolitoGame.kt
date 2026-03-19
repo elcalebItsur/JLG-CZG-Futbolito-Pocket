@@ -31,39 +31,40 @@ fun FutbolitoGame() {
     var homeScore by remember { mutableStateOf(0) }
     var visitorScore by remember { mutableStateOf(0) }
 
-    val ballRadius = 25f
-    val goalWidth = 180f
+    // --- Constantes del Juego ---
+    val ballRadius = 25f // Radio de la pelota
+    val goalWidth = 180f  // Ancho de la portería
     
-    // Obstacles (Bars and Walls as shown in the image)
+    // --- Definición de Obstáculos (Barras y Paredes según la imagen) ---
     val obstacles = remember(size) {
         if (size.width == 0) emptyList() else {
             val w = size.width.toFloat()
             val h = size.height.toFloat()
             val barThickness = 20f
             listOf(
-                // Defensive bars top
+                // Barras defensivas superiores
                 Rect(Offset(w * 0.25f, h * 0.15f), Size(w * 0.5f, barThickness)),
-                // Middle complex area
+                // Zona compleja media
                 Rect(Offset(w * 0.1f, h * 0.3f), Size(barThickness, h * 0.15f)),
                 Rect(Offset(w * 0.9f - barThickness, h * 0.3f), Size(barThickness, h * 0.15f)),
                 Rect(Offset(w * 0.35f, h * 0.45f), Size(w * 0.3f, barThickness)),
-                // Center circles simulation (as rectangles for now)
+                // Simulación de círculos centrales (como rectángulos por ahora)
                 Rect(Offset(w * 0.45f - 10f, h * 0.5f - 60f), Size(20f, 120f)),
-                // Defensive bars bottom
+                // Barras defensivas inferiores
                 Rect(Offset(w * 0.25f, h * 0.85f - barThickness), Size(w * 0.5f, barThickness)),
-                // Side bars
+                // Barras laterales
                 Rect(Offset(w * 0.1f, h * 0.55f), Size(barThickness, h * 0.15f)),
                 Rect(Offset(w * 0.9f - barThickness, h * 0.55f), Size(barThickness, h * 0.15f)),
             )
         }
     }
 
-    // Sensor integration
+    // --- Integración de Sensores ---
     if (isAccelerometerSensorAvailable()) {
         val sensorValue by rememberAccelerometerSensorValueAsState()
         val (x, y, _) = sensorValue.value
         
-        // Tilt sensitivity
+        // Sensibilidad de inclinación
         val sensitivity = 1.2f
         ballVel = Offset(
             x = ballVel.x - x * sensitivity,
@@ -71,10 +72,10 @@ fun FutbolitoGame() {
         )
     }
 
-    // Friction
+    // --- Fricción (Desaceleración natural) ---
     ballVel = Offset(ballVel.x * 0.96f, ballVel.y * 0.96f)
 
-    // Physics Update
+    // --- Actualización de la Física ---
     LaunchedEffect(ballVel) {
         if (size.width > 0 && size.height > 0) {
             val width = size.width.toFloat()
@@ -83,13 +84,13 @@ fun FutbolitoGame() {
             var nextX = ballPos.x + ballVel.x
             var nextY = ballPos.y + ballVel.y
 
-            // --- Obstacle Collisions ---
+            // --- Colisiones con Obstáculos ---
             for (obs in obstacles) {
-                // Simplified AABB with ball
+                // AABB (Caja Delimitadora) simplificada con la pelota
                 if (nextX + ballRadius > obs.left && nextX - ballRadius < obs.right &&
                     nextY + ballRadius > obs.top && nextY - ballRadius < obs.bottom) {
                     
-                    // Determine collision side
+                    // Determinar el lado de la colisión
                     val fromLeft = ballPos.x + ballRadius <= obs.left
                     val fromRight = ballPos.x - ballRadius >= obs.right
                     val fromTop = ballPos.y + ballRadius <= obs.top
@@ -105,7 +106,7 @@ fun FutbolitoGame() {
                 }
             }
 
-            // --- Boundary Collisions ---
+            // --- Colisiones con Bordes ---
             if (nextX - ballRadius < 30f) {
                 nextX = 30f + ballRadius
                 ballVel = Offset(-ballVel.x * 0.6f, ballVel.y)
@@ -114,6 +115,7 @@ fun FutbolitoGame() {
                 ballVel = Offset(-ballVel.x * 0.6f, ballVel.y)
             }
 
+            // --- Portería Superior (Visitante anota) ---
             if (nextY - ballRadius < 30f) {
                 val goalXStart = (width - goalWidth) / 2
                 val goalXEnd = (width + goalWidth) / 2
@@ -126,7 +128,9 @@ fun FutbolitoGame() {
                     nextY = 30f + ballRadius
                     ballVel = Offset(ballVel.x, -ballVel.y * 0.6f)
                 }
-            } else if (nextY + ballRadius > height - 30f) {
+            } 
+            // --- Portería Inferior (Local anota) ---
+            else if (nextY + ballRadius > height - 30f) {
                 val goalXStart = (width - goalWidth) / 2
                 val goalXEnd = (width + goalWidth) / 2
                 if (nextX in goalXStart..goalXEnd) {
@@ -158,7 +162,7 @@ fun FutbolitoGame() {
             val width = size.width.toFloat()
             val height = size.height.toFloat()
 
-            // Field texture (Grass stripes)
+            // Textura del Campo (Rayas de césped)
             val stripes = 15
             val stripeHeight = height / stripes
             for (i in 0 until stripes) {
@@ -171,7 +175,7 @@ fun FutbolitoGame() {
                 }
             }
 
-            // Outer boundary
+            // Bordes Exteriores
             drawRect(
                 color = Color.White.copy(alpha = 0.8f),
                 topLeft = Offset(30f, 30f),
@@ -179,7 +183,7 @@ fun FutbolitoGame() {
                 style = Stroke(width = 8f)
             )
             
-            // Mid line and circle
+            // Línea de medio campo y círculo central
             drawLine(
                 color = Color.White.copy(alpha = 0.5f),
                 start = Offset(30f, height / 2),
@@ -193,7 +197,7 @@ fun FutbolitoGame() {
                 style = Stroke(width = 4f)
             )
 
-            // Goals
+            // Porterías
             val goalXStart = (width - goalWidth) / 2
             drawRect(
                 color = Color(0xFFE0E0E0),
@@ -206,7 +210,7 @@ fun FutbolitoGame() {
                 size = Size(goalWidth, 20f)
             )
 
-            // Obstacles
+            // Dibujo de Obstáculos
             for (obs in obstacles) {
                 drawRect(
                     brush = Brush.linearGradient(
@@ -215,7 +219,7 @@ fun FutbolitoGame() {
                     topLeft = obs.topLeft,
                     size = obs.size
                 )
-                // Highlights on bars
+                // Reflejos en las barras (Efecto metálico)
                 drawRect(
                     color = Color.White.copy(alpha = 0.3f),
                     topLeft = obs.topLeft,
@@ -223,14 +227,14 @@ fun FutbolitoGame() {
                 )
             }
 
-            // Ball shadow
+            // Sombra de la Pelota
             drawCircle(
                 color = Color.Black.copy(alpha = 0.2f),
                 center = ballPos + Offset(5f, 5f),
                 radius = ballRadius
             )
 
-            // Ball
+            // Dibujo de la Pelota
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(Color.White, Color(0xFFBDBDBD)),
@@ -242,11 +246,12 @@ fun FutbolitoGame() {
             )
         }
 
-        // Scoreboard UI
+        // Interfaz del Marcador
         Scoreboard(homeScore, visitorScore)
     }
 }
 
+// Componente del Marcador
 @Composable
 fun Scoreboard(homeScore: Int, visitorScore: Int) {
     Row(
@@ -262,7 +267,7 @@ fun Scoreboard(homeScore: Int, visitorScore: Int) {
             modifier = Modifier.padding(8.dp)
         ) {
             Text(
-                text = "HOME: $homeScore",
+                text = "LOCAL: $homeScore",
                 color = Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
@@ -281,7 +286,7 @@ fun Scoreboard(homeScore: Int, visitorScore: Int) {
             modifier = Modifier.padding(8.dp)
         ) {
             Text(
-                text = "VISITOR: $visitorScore",
+                text = "VISITA: $visitorScore",
                 color = Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,

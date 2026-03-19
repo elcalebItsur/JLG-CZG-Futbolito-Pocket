@@ -35,26 +35,49 @@ fun FutbolitoGame() {
     val ballRadius = 25f // Radio de la pelota
     val goalWidth = 180f  // Ancho de la portería
     
-    // --- Definición de Obstáculos (Barras y Paredes según la imagen) ---
+    // --- Definición de Obstáculos (Diseño tipo Laberinto Complejo) ---
     val obstacles = remember(size) {
         if (size.width == 0) emptyList() else {
             val w = size.width.toFloat()
             val h = size.height.toFloat()
-            val barThickness = 20f
+            val t = 20f // grosor de las barras
+            
             listOf(
-                // Barras defensivas superiores
-                Rect(Offset(w * 0.25f, h * 0.15f), Size(w * 0.5f, barThickness)),
-                // Zona compleja media
-                Rect(Offset(w * 0.1f, h * 0.3f), Size(barThickness, h * 0.15f)),
-                Rect(Offset(w * 0.9f - barThickness, h * 0.3f), Size(barThickness, h * 0.15f)),
-                Rect(Offset(w * 0.35f, h * 0.45f), Size(w * 0.3f, barThickness)),
-                // Simulación de círculos centrales (como rectángulos por ahora)
-                Rect(Offset(w * 0.45f - 10f, h * 0.5f - 60f), Size(20f, 120f)),
-                // Barras defensivas inferiores
-                Rect(Offset(w * 0.25f, h * 0.85f - barThickness), Size(w * 0.5f, barThickness)),
-                // Barras laterales
-                Rect(Offset(w * 0.1f, h * 0.55f), Size(barThickness, h * 0.15f)),
-                Rect(Offset(w * 0.9f - barThickness, h * 0.55f), Size(barThickness, h * 0.15f)),
+                // --- Sector Superior ---
+                Rect(Offset(w * 0.2f, h * 0.12f), Size(w * 0.6f, t)), // Barra central superior
+                Rect(Offset(w * 0.1f, h * 0.12f), Size(t, h * 0.1f)),  // Lateral L
+                Rect(Offset(w * 0.9f - t, h * 0.12f), Size(t, h * 0.1f)), // Lateral R
+                
+                // --- Laberinto Superior ---
+                Rect(Offset(30f, h * 0.25f), Size(w * 0.25f, t)),
+                Rect(Offset(w * 0.75f - 30f, h * 0.25f), Size(w * 0.25f, t)),
+                Rect(Offset(w * 0.5f - t/2, h * 0.2f), Size(t, h * 0.15f)), // Barra vertical central top
+                
+                // --- Sector Medio-Superior ---
+                Rect(Offset(w * 0.25f, h * 0.35f), Size(t, h * 0.12f)),
+                Rect(Offset(w * 0.75f - t, h * 0.35f), Size(t, h * 0.12f)),
+                Rect(Offset(w * 0.35f, h * 0.42f), Size(w * 0.3f, t)),
+                
+                // --- Centro (Círculo central con obstáculos tipo "T") ---
+                Rect(Offset(w * 0.4f, h * 0.5f - t/2), Size(w * 0.2f, t)),
+                Rect(Offset(w * 0.5f - t/2, h * 0.45f), Size(t, h * 0.1f)),
+                
+                // --- Sector Medio-Inferior ---
+                Rect(Offset(w * 0.15f, h * 0.58f), Size(w * 0.2f, t)),
+                Rect(Offset(w * 0.65f, h * 0.58f), Size(w * 0.2f, t)),
+                Rect(Offset(w * 0.5f - t/2, h * 0.65f), Size(t, h * 0.12f)),
+                
+                // --- Laberinto Inferior ---
+                Rect(Offset(w * 0.3f, h * 0.75f), Size(w * 0.4f, t)),
+                Rect(Offset(w * 0.1f, h * 0.75f), Size(t, h * 0.1f)),
+                Rect(Offset(w * 0.9f - t, h * 0.75f), Size(t, h * 0.1f)),
+                
+                // --- Defensas de Portería Inferior ---
+                Rect(Offset(w * 0.25f, h * 0.88f), Size(w * 0.5f, t)),
+                
+                // --- Obstáculos laterales adicionales ---
+                Rect(Offset(30f, h * 0.45f), Size(w * 0.15f, t)),
+                Rect(Offset(w * 0.85f - 30f, h * 0.45f), Size(w * 0.15f, t)),
             )
         }
     }
@@ -65,7 +88,7 @@ fun FutbolitoGame() {
         val (x, y, _) = sensorValue.value
         
         // Sensibilidad de inclinación
-        val sensitivity = 1.2f
+        val sensitivity = 1.25f
         ballVel = Offset(
             x = ballVel.x - x * sensitivity,
             y = ballVel.y + y * sensitivity
@@ -73,7 +96,7 @@ fun FutbolitoGame() {
     }
 
     // --- Fricción (Desaceleración natural) ---
-    ballVel = Offset(ballVel.x * 0.96f, ballVel.y * 0.96f)
+    ballVel = Offset(ballVel.x * 0.97f, ballVel.y * 0.97f)
 
     // --- Actualización de la Física ---
     LaunchedEffect(ballVel) {
@@ -90,32 +113,32 @@ fun FutbolitoGame() {
                 if (nextX + ballRadius > obs.left && nextX - ballRadius < obs.right &&
                     nextY + ballRadius > obs.top && nextY - ballRadius < obs.bottom) {
                     
-                    // Determinar el lado de la colisión
+                    // Determinar el lado de la colisión para un rebote correcto
                     val fromLeft = ballPos.x + ballRadius <= obs.left
                     val fromRight = ballPos.x - ballRadius >= obs.right
                     val fromTop = ballPos.y + ballRadius <= obs.top
                     val fromBottom = ballPos.y - ballRadius >= obs.bottom
 
                     if (fromLeft || fromRight) {
-                        ballVel = Offset(-ballVel.x * 0.6f, ballVel.y)
+                        ballVel = Offset(-ballVel.x * 0.7f, ballVel.y)
                         nextX = if (fromLeft) obs.left - ballRadius else obs.right + ballRadius
                     } else if (fromTop || fromBottom) {
-                        ballVel = Offset(ballVel.x, -ballVel.y * 0.6f)
+                        ballVel = Offset(ballVel.x, -ballVel.y * 0.7f)
                         nextY = if (fromTop) obs.top - ballRadius else obs.bottom + ballRadius
                     }
                 }
             }
 
-            // --- Colisiones con Bordes ---
+            // --- Colisiones con Bordes de la Cancha ---
             if (nextX - ballRadius < 30f) {
                 nextX = 30f + ballRadius
-                ballVel = Offset(-ballVel.x * 0.6f, ballVel.y)
+                ballVel = Offset(-ballVel.x * 0.7f, ballVel.y)
             } else if (nextX + ballRadius > width - 30f) {
                 nextX = width - 30f - ballRadius
-                ballVel = Offset(-ballVel.x * 0.6f, ballVel.y)
+                ballVel = Offset(-ballVel.x * 0.7f, ballVel.y)
             }
 
-            // --- Portería Superior (Visitante anota) ---
+            // --- Lógica de Porterías ---
             if (nextY - ballRadius < 30f) {
                 val goalXStart = (width - goalWidth) / 2
                 val goalXEnd = (width + goalWidth) / 2
@@ -126,11 +149,9 @@ fun FutbolitoGame() {
                     ballVel = Offset(0f, 0f)
                 } else {
                     nextY = 30f + ballRadius
-                    ballVel = Offset(ballVel.x, -ballVel.y * 0.6f)
+                    ballVel = Offset(ballVel.x, -ballVel.y * 0.7f)
                 }
-            } 
-            // --- Portería Inferior (Local anota) ---
-            else if (nextY + ballRadius > height - 30f) {
+            } else if (nextY + ballRadius > height - 30f) {
                 val goalXStart = (width - goalWidth) / 2
                 val goalXEnd = (width + goalWidth) / 2
                 if (nextX in goalXStart..goalXEnd) {
@@ -140,7 +161,7 @@ fun FutbolitoGame() {
                     ballVel = Offset(0f, 0f)
                 } else {
                     nextY = height - 30f - ballRadius
-                    ballVel = Offset(ballVel.x, -ballVel.y * 0.6f)
+                    ballVel = Offset(ballVel.x, -ballVel.y * 0.7f)
                 }
             }
 
@@ -156,6 +177,7 @@ fun FutbolitoGame() {
                     colors = listOf(Color(0xFF2E7D32), Color(0xFF1B5E20))
                 )
             )
+            .systemBarsPadding() // Evita el Notch y la barra de navegación
             .onSizeChanged { size = it }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
